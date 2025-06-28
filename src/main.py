@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import FastAPI, Request, Response, status, Depends, HTTPException
+from fastapi import Cookie, FastAPI, Header, Request, Response, status, Depends, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from src.routers.movie_router import movie_router
@@ -40,7 +40,6 @@ def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
         raise HTTPException(status_code=401, detail="Invalid token")
     return user
 
-
 @app.post("/token", tags=['token'])
 def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     user = users.get(form_data.username)
@@ -54,6 +53,30 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 @app.get("/users/profile", tags=['token'])
 def profile(my_user: Annotated[dict, Depends(decode_token)]):
     return my_user
+
+# AÑADIR HEADERS
+
+def get_headers(
+        access_token: Annotated[str , Header()],
+        user_role: Annotated[str | None, Header()] = None # Header no obligatorio
+):
+    if access_token != "secret":
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    return {"access_token": access_token, "user_role": user_role}
+
+
+@app.get("/Dashboard", tags=['Headers'])
+def dashboard(request: Request,
+              response: Response,
+              headers: Annotated[dict, Depends(get_headers)] # Pasamos headers como dependencias de función
+):
+    print(request.headers) # Imprime los headers de entrada
+    response.headers["user_status"] = "enabled" # Añade headers de respuesta
+
+    return {"access_token": headers["access_token"], "user_role": headers["user_role"]}
+    
+
 
 # MIDDLEWARE QUE CAPTURA EL TRÁFICO HTTP ANTES DE ENTRAR EN EL ENDPOINT
 @app.middleware('http')
@@ -70,12 +93,24 @@ async def http_error_handler(request: Request, call_next) -> Response | JSONResp
 def home():
     return HTMLResponse('<h1>Hello World</h1>')
 
+# COOKIES
+@app.get("/cookies", tags=['Cookies'])
+def cookies():
+    response = JSONResponse(content={"msg": "Welcome"})
+    response.set_cookie(key="username", value="Pedro", expires=10)
+
+    return response
+
+@app.get("/get_cookies", tags=['Cookies'])
+def cookget_cookies(username: str = Cookie()):
+    return username
+
 #ENDPOINTS PARA PROBAR LA INYECCIÓN DE DEPENDENCIAS
-@app.get('/users', tags=['Dependencias'])
+@app.get('/users', tags=['Dependencias'])   # DEPENDENCIA DE FUNCIÓN
 def get_users(commons: dict = Depends(common_params)):
     return f"Users created between {commons['start_date']} and {commons['end_date']}"
 
-@app.get('/owners', tags=['Dependencias'])
+@app.get('/owners', tags=['Dependencias'])  #DEPENDENCIA DE CLASE
 def get_owners(commons:Common_dep = Depends()):
     return f"Owners created between {commons.start_date} and {commons.end_date}"
 
