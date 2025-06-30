@@ -15,10 +15,12 @@ class Common_dep():
         self.start_date = start_date
         self.end_date = end_date
 
-app = FastAPI()#app = FastAPI(dependencies=[Depends(common_params)]) #Añadir dependencias a nivel global de la app
+app = FastAPI()#app = FastAPI(dependencies=[Depends(common_params)]) # Añadir dependencias a nivel global de la app
 app.title="App de prueba"
 app.version="0.0.1"
-app.include_router(prefix='/movies', router=movie_router)
+
+app.include_router(prefix='/movies', router=movie_router) # Incluímos el router de movies con el path ya incluído /movies
+
 #app.add_middleware(HttpErrorHandler) # AÑADIR MIDDLEWARE EN FICHERO EXTERNO 
 
 # OAUTH
@@ -41,7 +43,7 @@ def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
     return user
 
 @app.post("/token", tags=['token'])
-def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     user = users.get(form_data.username)
 
     if not user or user["password"] != form_data.password:
@@ -51,7 +53,7 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     return {"access_token": token}
 
 @app.get("/users/profile", tags=['token'])
-def profile(my_user: Annotated[dict, Depends(decode_token)]):
+async def profile(my_user: Annotated[dict, Depends(decode_token)]):
     return my_user
 
 # AÑADIR HEADERS
@@ -67,7 +69,7 @@ def get_headers(
 
 
 @app.get("/Dashboard", tags=['Headers'])
-def dashboard(request: Request,
+async def dashboard(request: Request,
               response: Response,
               headers: Annotated[dict, Depends(get_headers)] # Pasamos headers como dependencias de función
 ):
@@ -90,30 +92,30 @@ async def http_error_handler(request: Request, call_next) -> Response | JSONResp
         return JSONResponse(content, status_code=status_code)
 
 @app.get("/", tags=['Home'])
-def home():
+async def home():
     return HTMLResponse('<h1>Hello World</h1>')
 
 # COOKIES
 @app.get("/cookies", tags=['Cookies'])
-def cookies():
+async def cookies():
     response = JSONResponse(content={"msg": "Welcome"})
     response.set_cookie(key="username", value="Pedro", expires=10)
 
     return response
 
 @app.get("/get_cookies", tags=['Cookies'])
-def cookget_cookies(username: str = Cookie()):
+async def cookget_cookies(username: str = Cookie()):
     return username
 
 #ENDPOINTS PARA PROBAR LA INYECCIÓN DE DEPENDENCIAS
 @app.get('/users', tags=['Dependencias'])   # DEPENDENCIA DE FUNCIÓN
-def get_users(commons: dict = Depends(common_params)):
+async def get_users(commons: dict = Depends(common_params)):
     return f"Users created between {commons['start_date']} and {commons['end_date']}"
 
 @app.get('/owners', tags=['Dependencias'])  #DEPENDENCIA DE CLASE
-def get_owners(commons:Common_dep = Depends()):
+async def get_owners(commons:Common_dep = Depends()):
     return f"Owners created between {commons.start_date} and {commons.end_date}"
 
 @app.get('/customer', tags=['Dependencias'])
-def get_customer(start_date: str, end_date: str):
+async def get_customer(start_date: str, end_date: str):
     return f"Customers created between {start_date} and {end_date}"
