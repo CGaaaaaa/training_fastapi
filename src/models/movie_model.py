@@ -1,7 +1,6 @@
 import datetime
 from pydantic import BaseModel, Field, field_validator
 
-
 class Movie(BaseModel):
     id: int
     title: str
