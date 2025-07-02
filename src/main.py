@@ -1,7 +1,9 @@
+import os
 from typing import Annotated
-from fastapi import Cookie, FastAPI, Header, Request, Response, status, Depends, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import Cookie, FastAPI, Header, Request, Response, status, Depends, HTTPException, status
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
 from src.routers.movie_router import movie_router
 from jose import jwt
 
@@ -19,11 +21,18 @@ app = FastAPI()#app = FastAPI(dependencies=[Depends(common_params)]) # Añadir d
 app.title="App de prueba"
 app.version="0.0.1"
 
-app.include_router(prefix='/movies', router=movie_router) # Incluímos el router de movies con el path ya incluído /movies
+# Poner imagen estática
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+static_dir = os.path.join(BASE_DIR, "static")
+static_dir_images = os.path.join(static_dir, "images")
+app.mount("/static", StaticFiles(directory=static_dir), name="static") # http://localhost:8000/static/images/madrid.jpg Expone un recurso en su path
+
+app.include_router(movie_router) # Incluímos el router de movies
 
 #app.add_middleware(HttpErrorHandler) # AÑADIR MIDDLEWARE EN FICHERO EXTERNO 
 
 # OAUTH
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") #Path operation existente
 
 users = {
@@ -39,7 +48,7 @@ def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
     data = jwt.decode(token, "my-secret", algorithms=["HS256"])
     user = users.get(data["username"])
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     return user
 
 @app.post("/token", tags=['token'])
@@ -47,7 +56,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     user = users.get(form_data.username)
 
     if not user or user["password"] != form_data.password:
-        raise HTTPException(status_code=400, detail="Incorrect Username or password")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect Username or password")
     
     token = encode_token({"username":user["username"],"email":user["email"]})
     return {"access_token": token}
@@ -63,7 +72,7 @@ def get_headers(
         user_role: Annotated[str | None, Header()] = None # Header no obligatorio
 ):
     if access_token != "secret":
-        raise HTTPException(status_code=401, detail="No autorizado")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autorizado")
 
     return {"access_token": access_token, "user_role": user_role}
 
@@ -77,10 +86,9 @@ async def dashboard(request: Request,
     response.headers["user_status"] = "enabled" # Añade headers de respuesta
 
     return {"access_token": headers["access_token"], "user_role": headers["user_role"]}
-    
-
 
 # MIDDLEWARE QUE CAPTURA EL TRÁFICO HTTP ANTES DE ENTRAR EN EL ENDPOINT
+
 @app.middleware('http')
 async def http_error_handler(request: Request, call_next) -> Response | JSONResponse:
     try:
@@ -96,6 +104,7 @@ async def home():
     return HTMLResponse('<h1>Hello World</h1>')
 
 # COOKIES
+
 @app.get("/cookies", tags=['Cookies'])
 async def cookies():
     response = JSONResponse(content={"msg": "Welcome"})
@@ -108,6 +117,7 @@ async def cookget_cookies(username: str = Cookie()):
     return username
 
 #ENDPOINTS PARA PROBAR LA INYECCIÓN DE DEPENDENCIAS
+
 @app.get('/users', tags=['Dependencias'])   # DEPENDENCIA DE FUNCIÓN
 async def get_users(commons: dict = Depends(common_params)):
     return f"Users created between {commons['start_date']} and {commons['end_date']}"
@@ -119,3 +129,11 @@ async def get_owners(commons:Common_dep = Depends()):
 @app.get('/customer', tags=['Dependencias'])
 async def get_customer(start_date: str, end_date: str):
     return f"Customers created between {start_date} and {end_date}"
+
+# STATIC FILES ENDPOINT
+
+@app.get('/image', tags=['Imagen'])
+async def get_images():
+    image_path = os.path.join(static_dir_images,"madrid.jpg")
+    
+    return FileResponse(image_path, media_type="image/jpeg")
