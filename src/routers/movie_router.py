@@ -23,17 +23,17 @@ movies: List[Movie] = [
         category= "comedy"
     )
 ]
-## CRUD ##
+### CRUD ###
 
-# CREATE
-@movie_router.post("/", status_code=201, response_model= List[Movie])
+### CREATE ###
+@movie_router.post("/", status_code=status.HTTP_201_CREATED, response_model= List[Movie])
 async def create_movie(movie: Movie_create) -> List[Movie]:
     new_movie = Movie(**movie.model_dump())
     movies.append(new_movie)
 
     return movies
 
-# UPDATE
+### UPDATE ###
 @movie_router.put("/{id}", response_model=Movie)
 async def update_movie(id:int, movie: Movie_update) -> Movie:
     for item in movies:
@@ -48,7 +48,7 @@ async def update_movie(id:int, movie: Movie_update) -> Movie:
     
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
 
-# DELETE
+### DELETE ###
 @movie_router.delete("/{id}", response_model= List[Movie])
 async def delete_movie(id: int) -> List[Movie]:
     for movie in movies:
@@ -59,15 +59,15 @@ async def delete_movie(id: int) -> List[Movie]:
     
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
 
-## SEARCH ##
+### SEARCH ###
 
-# ALL MOVIES
+### ALL MOVIES ###
 @movie_router.get("/", response_model= List[Movie])
 async def get_movies() -> List[Movie]:
 
     return movies
 
-# MOVIE BY CATEGORY
+### MOVIE BY CATEGORY ###
 @movie_router.get("/category", response_model= List[Movie])
 async def get_movie_by_category(category: str = Query(min_length=5, max_length=20)) -> List[Movie]:
     result = [movie for movie in movies if movie.category == category]
@@ -77,7 +77,7 @@ async def get_movie_by_category(category: str = Query(min_length=5, max_length=2
     
     return result
 
-# MOVIE BY ID
+### MOVIE BY ID ###
 @movie_router.get("/{id}", response_model=Movie)
 async def get_movie(id: int = Path(gt=0)) -> Movie:
     for movie in movies:

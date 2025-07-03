@@ -7,11 +7,13 @@ from fastapi.staticfiles import StaticFiles
 from src.routers.movie_router import movie_router
 from jose import jwt
 
-# DEPENDENCIA DE FUNCIÓN
+### DEPENDENCIA DE FUNCIÓN ###
+
 def common_params(start_date: str, end_date: str):
     return {"start_date": start_date, "end_date": end_date}
 
-# DEPENDENCIA DE CLASE
+### DEPENDENCIA DE CLASE ###
+
 class Common_dep():
     def __init__(self, start_date: str, end_date:str) -> None:
         self.start_date = start_date
@@ -21,17 +23,20 @@ app = FastAPI()#app = FastAPI(dependencies=[Depends(common_params)]) # Añadir d
 app.title="App de prueba"
 app.version="0.0.1"
 
-# Poner imagen estática
+### IMAGEN ESTÁTICA ###
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(BASE_DIR, "static")
 static_dir_images = os.path.join(static_dir, "images")
 app.mount("/static", StaticFiles(directory=static_dir), name="static") # http://localhost:8000/static/images/madrid.jpg Expone un recurso en su path
 
+### ROUTERS ###
+
 app.include_router(movie_router) # Incluímos el router de movies
 
 #app.add_middleware(HttpErrorHandler) # AÑADIR MIDDLEWARE EN FICHERO EXTERNO 
 
-# OAUTH
+### OAUTH ###
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") #Path operation existente
 
@@ -65,7 +70,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 async def profile(my_user: Annotated[dict, Depends(decode_token)]):
     return my_user
 
-# AÑADIR HEADERS
+### AÑADIR HEADERS ###
 
 def get_headers(
         access_token: Annotated[str , Header()],
@@ -87,7 +92,7 @@ async def dashboard(request: Request,
 
     return {"access_token": headers["access_token"], "user_role": headers["user_role"]}
 
-# MIDDLEWARE QUE CAPTURA EL TRÁFICO HTTP ANTES DE ENTRAR EN EL ENDPOINT
+### MIDDLEWARE QUE CAPTURA EL TRÁFICO HTTP ANTES DE ENTRAR EN EL ENDPOINT ###
 
 @app.middleware('http')
 async def http_error_handler(request: Request, call_next) -> Response | JSONResponse:
@@ -103,7 +108,7 @@ async def http_error_handler(request: Request, call_next) -> Response | JSONResp
 async def home():
     return HTMLResponse('<h1>Hello World</h1>')
 
-# COOKIES
+### COOKIES ###
 
 @app.get("/cookies", tags=['Cookies'])
 async def cookies():
@@ -116,7 +121,7 @@ async def cookies():
 async def cookget_cookies(username: str = Cookie()):
     return username
 
-#ENDPOINTS PARA PROBAR LA INYECCIÓN DE DEPENDENCIAS
+### ENDPOINTS PARA PROBAR LA INYECCIÓN DE DEPENDENCIAS ###
 
 @app.get('/users', tags=['Dependencias'])   # DEPENDENCIA DE FUNCIÓN
 async def get_users(commons: dict = Depends(common_params)):
@@ -130,7 +135,7 @@ async def get_owners(commons:Common_dep = Depends()):
 async def get_customer(start_date: str, end_date: str):
     return f"Customers created between {start_date} and {end_date}"
 
-# STATIC FILES ENDPOINT
+### STATIC FILES ENDPOINT ###
 
 @app.get('/image', tags=['Imagen'])
 async def get_images():
