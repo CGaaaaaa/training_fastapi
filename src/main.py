@@ -38,27 +38,29 @@ app.include_router(movie_router) # Incluímos el router de movies
 
 ### OAUTH ###
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") #Path operation existente
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login") #Path operation existente
+SECRET= "my-secret"
+ALGORITHM= "HS256"
 
-users = {
+fake_users_db = {
     "pedro":{"username":"pedro", "email":"pedro@gmail.com", "password":"pata"},
     "user2":{"username":"user2", "email":"user2@gmail.com", "password":"user2"}
 }
 
 def encode_token(payload:dict) -> str:
-    token = jwt.encode(payload, "my-secret", algorithm="HS256")
+    token = jwt.encode(payload, SECRET, algorithm=ALGORITHM)
     return token
 
 def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
-    data = jwt.decode(token, "my-secret", algorithms=["HS256"])
-    user = users.get(data["username"])
+    data = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
+    user = fake_users_db.get(data["username"])
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     return user
 
-@app.post("/token", tags=['token'])
+@app.post("/login", tags=['token'])
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    user = users.get(form_data.username)
+    user = fake_users_db.get(form_data.username)
 
     if not user or user["password"] != form_data.password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect Username or password")
@@ -69,6 +71,10 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 @app.get("/users/profile", tags=['token'])
 async def profile(my_user: Annotated[dict, Depends(decode_token)]):
     return my_user
+
+@app.get("/users/mail", tags=['token'])
+async def my_email(my_user: Annotated[dict, Depends(decode_token)]):
+    return my_user["email"]
 
 ### AÑADIR HEADERS ###
 
