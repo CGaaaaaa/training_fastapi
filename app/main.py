@@ -4,11 +4,11 @@ from fastapi import Cookie, FastAPI, Header, Request, Response, status, Depends,
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
-from src.routers.movie_router import movie_router
+from app.routers.movie_router import movie_router
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
-from utils import exceptions
+from app.utils import exceptions
 
 app = FastAPI() # app = FastAPI(dependencies=[Depends(common_params)]) # Añadir dependencias a nivel global de la app
 app.title="App de prueba"

@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import HTTPException, Path, Query, APIRouter, status
-from src.models.movie_model import Movie, Movie_create, Movie_update
+from app.models.movie_model import Movie, Movie_create, Movie_update
 
 movie_router = APIRouter(prefix='/movies', tags=['Movies'])
 
