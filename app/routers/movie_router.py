@@ -43,8 +43,7 @@ async def update_movie(id:int, movie: Movie_update) -> Movie:
             item.year = movie.year
             item.rating = movie.rating
             item.category = movie.category
-
-        return item
+            return item
     
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
 
@@ -54,8 +53,7 @@ async def delete_movie(id: int) -> List[Movie]:
     for movie in movies:
         if movie.id == id:
             movies.remove(movie)
-
-        return movies
+            return movies
     
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
 

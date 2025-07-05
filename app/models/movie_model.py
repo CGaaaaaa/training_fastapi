@@ -21,8 +21,8 @@ class Movie_create(BaseModel):
 def validate_title(cls,value: str) -> str:
     if len(value) < 5:
         raise ValueError('Title Field must hava a minimun length of 5 characters')
-    if len(value) > 5:
-        raise ValueError('Title Field must hava a maximun  length of 5 characters')
+    if len(value) > 15:
+        raise ValueError('Title Field must hava a maximun  length of 15 characters')
     return value
 
 class Movie_update(BaseModel):
