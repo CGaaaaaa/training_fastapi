@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from src.routers.movie_router import movie_router
-from jose import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 
@@ -52,8 +52,11 @@ def encode_token(access_token:dict) -> str:
     return token
 
 def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
-    decode_token = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
-    #user = fake_users_db.get(decode_token["username"])
+    try:
+        decode_token = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
+
     user = get_user_by_id(decode_token["id"])
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
