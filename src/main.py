@@ -8,6 +8,7 @@ from src.routers.movie_router import movie_router
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
+from utils import exceptions
 
 app = FastAPI() # app = FastAPI(dependencies=[Depends(common_params)]) # Añadir dependencias a nivel global de la app
 app.title="App de prueba"
@@ -55,13 +56,13 @@ def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
     try:
         decode_token = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
+        raise exceptions.INVALID_TOKEN_EXCEPTION
 
     user = get_user_by_id(decode_token["id"])
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise exceptions.INVALID_TOKEN_EXCEPTION
     elif user["disabled"] == True:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is disabled")
+        raise exceptions.DISABLED_USER_EXCEPTION
     return user
 
 @app.post("/login", tags=['token'])
@@ -71,7 +72,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     if not user or not crypt.verify(form_data.password, user["password"]): # Verifica si contraseña en plano y encriptada coinciden
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect Username or password")
     elif user["disabled"] == True:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is disabled")
+        raise exceptions.DISABLED_USER_EXCEPTION
 
     ACCESS_TOKEN_EXPIRATION = timedelta(minutes=ACCESS_TOKEN_DURATION)
     EXPIRATION_TOKEN = datetime.now(timezone.utc) + ACCESS_TOKEN_EXPIRATION # Fecha actual + expiración del token
